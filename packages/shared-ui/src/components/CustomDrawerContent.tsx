@@ -16,6 +16,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
   const drawerItems = [
     { name: 'Home', label: 'Home' },
     { name: 'Explore', label: 'Explore' },
+    { name: 'Decision', label: 'Watch Together' },
     { name: 'TV', label: 'TV' },
   ] as const;
 

@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { StyleSheet, View, Platform, I18nManager } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -13,6 +14,7 @@ import HomeScreen from '../screens/HomeScreen';
 import ExploreScreen from '../screens/ExploreScreen';
 import TVScreen from '../screens/TVScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import DecisionScreen from '../screens/DecisionScreen';
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
@@ -75,7 +77,13 @@ export default function DrawerNavigator() {
             drawerLabel: 'Explore',
           }}
         />
-        <Drawer.Screen
+                <Drawer.Screen
+          name="Decision"
+          component={DecisionScreen}
+          options={{
+            drawerLabel: 'Watch Together',
+          }}
+        /><Drawer.Screen
           name="TV"
           component={TVScreen}
           options={{

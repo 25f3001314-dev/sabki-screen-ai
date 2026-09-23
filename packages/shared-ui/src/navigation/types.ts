@@ -22,6 +22,7 @@ export type RootStackParamList = {
 export type DrawerParamList = {
   Home: undefined;
   Explore: undefined;
+  Decision: undefined;
   TV: undefined;
   Settings: undefined;
 };
