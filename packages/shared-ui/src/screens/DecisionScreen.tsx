@@ -1,24 +1,14 @@
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import {
-  DefaultFocus,
-  SpatialNavigationFocusableView,
-  SpatialNavigationRoot,
-} from 'react-tv-space-navigation';
+import { DefaultFocus, SpatialNavigationFocusableView, SpatialNavigationRoot } from 'react-tv-space-navigation';
 import { useIsFocused } from '@react-navigation/native';
 import { scaledPixels } from '../hooks/useScale';
 import { safeZones } from '../theme';
 import { colors } from '../theme/colors';
 import { useMenuContext } from '../components/MenuContext';
 import FocusablePressable from '../components/FocusablePressable';
-import {
-  Viewer,
-  Movie,
-  SlateCard,
-  rankMovies,
-  buildSlate,
-  updateFairnessLedger,
-} from '../engine/groupEngine';
+import { buildExplanationRequest, FALLBACK_EXPLANATION, fetchMovieExplanation } from '../services/bedrockExplanation';
+import { Viewer, Movie, SlateCard, rankMovies, buildSlate, updateFairnessLedger } from '../engine/groupEngine';
 
 // ---- MVP demo data (baad me real catalogue se replace karna) ----
 
@@ -46,6 +36,7 @@ export default function DecisionScreen() {
   const [vetoedIds, setVetoedIds] = useState<string[]>([]);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(SESSION_SECONDS);
+  const [explanations, setExplanations] = useState<Record<string, string>>({});
 
   // 2-minute decision timer
   useEffect(() => {
@@ -59,6 +50,33 @@ export default function DecisionScreen() {
     const ranked = rankMovies(CATALOGUE, viewers, { vetoedMovieIds: vetoedIds });
     return buildSlate(ranked);
   }, [viewers, vetoedIds]);
+
+  useEffect(() => {
+    const cancellationToken = { aborted: false };
+
+    const loadExplanations = async () => {
+      const results = await Promise.all(
+        slate.map(async (card, index) => {
+          const explanation = await fetchMovieExplanation(
+            buildExplanationRequest(card, viewers, index + 1),
+            cancellationToken,
+          );
+          return [card.scored.movie.id, explanation] as const;
+        }),
+      );
+
+      if (cancellationToken.aborted) return;
+      setExplanations((previous) => ({
+        ...previous,
+        ...Object.fromEntries(results.filter((entry): entry is [string, string] => entry[1] !== null)),
+      }));
+    };
+
+    void loadExplanations();
+    return () => {
+      cancellationToken.aborted = true;
+    };
+  }, [slate, viewers]);
 
   const handleVeto = useCallback((movieId: string) => {
     setVetoedIds((prev) => [...prev, movieId]);
@@ -78,7 +96,9 @@ export default function DecisionScreen() {
         <Text style={styles.heading}>Aaj kya dekhein?</Text>
 
         {!selectedTitle && (
-          <Text style={styles.timer}>⏱ {minutes}:{seconds}</Text>
+          <Text style={styles.timer}>
+            ⏱ {minutes}:{seconds}
+          </Text>
         )}
 
         {selectedTitle ? (
@@ -92,6 +112,7 @@ export default function DecisionScreen() {
                 key={card.scored.movie.id}
                 card={card}
                 autoFocus={index === 0}
+                explanation={explanations[card.scored.movie.id] ?? FALLBACK_EXPLANATION}
                 onVeto={() => handleVeto(card.scored.movie.id)}
                 onSelect={() => handleSelect(card)}
               />
@@ -106,11 +127,13 @@ export default function DecisionScreen() {
 function DecisionCard({
   card,
   autoFocus,
+  explanation,
   onVeto,
   onSelect,
 }: {
   card: SlateCard;
   autoFocus: boolean;
+  explanation: string;
   onVeto: () => void;
   onSelect: () => void;
 }) {
@@ -133,9 +156,7 @@ function DecisionCard({
         ))}
       </View>
 
-      <Text style={styles.why}>
-        Why this? Balances group's genre preferences within safety limits.
-      </Text>
+      <Text style={styles.why}>Why this? {explanation}</Text>
 
       <View style={styles.buttonRow}>
         {autoFocus ? <DefaultFocus>{selectButton}</DefaultFocus> : selectButton}
