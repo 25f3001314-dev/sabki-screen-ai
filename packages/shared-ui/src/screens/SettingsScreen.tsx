@@ -13,6 +13,7 @@ import FocusablePressable from '../components/FocusablePressable';
 import { useCallback, useState } from 'react';
 import { useMenuContext } from '../components/MenuContext';
 import { getOpenDrawerDirection } from '../utils/rtl';
+import ScreenTopControls from '../components/ScreenTopControls';
 
 export default function SettingsScreen() {
   const isFocused = useIsFocused();
@@ -40,6 +41,13 @@ export default function SettingsScreen() {
       onDirectionHandledWithoutMovement={onDirectionHandledWithoutMovement}
     >
       <View style={styles.container}>
+        <ScreenTopControls
+          onBack={() => navigation.navigate('Home')}
+          onMenu={() => {
+            navigation.dispatch(DrawerActions.openDrawer());
+            toggleMenu(true);
+          }}
+        />
         <View style={styles.innerContainer}>
           <Text style={styles.title}>Settings</Text>
           <SpatialNavigationScrollView style={styles.scrollView}>
@@ -49,16 +57,13 @@ export default function SettingsScreen() {
                 <Text style={styles.sectionTitle}>Video Quality</Text>
                 <SpatialNavigationNode orientation="horizontal">
                   <View style={styles.optionsRow}>
-                    {qualityOptions.map((quality, index) => (
+                    {qualityOptions.map((quality, index) =>
                       index === 0 ? (
                         <DefaultFocus key={quality}>
                           <FocusablePressable
                             text={quality}
                             onSelect={() => setSelectedQuality(quality)}
-                            style={[
-                              styles.optionButton,
-                              selectedQuality === quality && styles.selectedOption,
-                            ]}
+                            style={[styles.optionButton, selectedQuality === quality && styles.selectedOption]}
                           />
                         </DefaultFocus>
                       ) : (
@@ -66,13 +71,10 @@ export default function SettingsScreen() {
                           key={quality}
                           text={quality}
                           onSelect={() => setSelectedQuality(quality)}
-                          style={[
-                            styles.optionButton,
-                            selectedQuality === quality && styles.selectedOption,
-                          ]}
+                          style={[styles.optionButton, selectedQuality === quality && styles.selectedOption]}
                         />
-                      )
-                    ))}
+                      ),
+                    )}
                   </View>
                 </SpatialNavigationNode>
               </View>
@@ -185,6 +187,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     paddingHorizontal: scaledPixels(safeZones.titleSafe.horizontal),
     marginBottom: scaledPixels(32),
+    marginTop: scaledPixels(60),
   },
   section: {
     marginBottom: scaledPixels(40),

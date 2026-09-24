@@ -19,6 +19,8 @@ export interface Viewer {
 export interface Movie {
   id: string;
   title: string;
+  headerImage?: string;
+  movie?: string;
   genres: string[];
   runtimeMin: number;
   ageRating: number; // e.g. 0, 7, 13, 16, 18
@@ -62,11 +64,7 @@ export interface SlateCard {
 
 // ---------- Step 1: Hard constraints (safety pehle, fairness baad me) ----------
 
-export function passesHardConstraints(
-  movie: Movie,
-  viewers: Viewer[],
-  config: GroupConfig = DEFAULT_CONFIG,
-): boolean {
+export function passesHardConstraints(movie: Movie, viewers: Viewer[], config: GroupConfig = DEFAULT_CONFIG): boolean {
   if (config.maxRuntimeMin !== undefined && movie.runtimeMin > config.maxRuntimeMin) {
     return false;
   }
@@ -80,11 +78,7 @@ export function passesHardConstraints(
 // ---------- Step 2: Ek viewer ki satisfaction ----------
 
 /** Movie ke genres par viewer ke scores ka average. Ek genre 0.0 ho to movie pe asar padta hai. */
-export function viewerSatisfaction(
-  viewer: Viewer,
-  movie: Movie,
-  config: GroupConfig = DEFAULT_CONFIG,
-): number {
+export function viewerSatisfaction(viewer: Viewer, movie: Movie, config: GroupConfig = DEFAULT_CONFIG): number {
   if (movie.genres.length === 0) return config.unknownGenreScore;
   const scores = movie.genres.map((g) => viewer.prefs[g] ?? config.unknownGenreScore);
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
@@ -95,11 +89,7 @@ export function viewerSatisfaction(
 
 // ---------- Step 3: Group score ----------
 
-export function scoreMovie(
-  movie: Movie,
-  viewers: Viewer[],
-  config: GroupConfig = DEFAULT_CONFIG,
-): ScoredMovie {
+export function scoreMovie(movie: Movie, viewers: Viewer[], config: GroupConfig = DEFAULT_CONFIG): ScoredMovie {
   const perViewer: Record<string, number> = {};
   let weightedSum = 0;
   let weightTotal = 0;
@@ -163,17 +153,14 @@ export function buildSlate(ranked: ScoredMovie[]): SlateCard[] {
 
   // Card 2: Balanced Alternative = bachi hui me sabse achha least-misery
   if (rest.length > 0) {
-    const balanced = [...rest].sort(
-      (a, b) => b.leastMisery - a.leastMisery || b.groupScore - a.groupScore,
-    )[0];
+    const balanced = [...rest].sort((a, b) => b.leastMisery - a.leastMisery || b.groupScore - a.groupScore)[0];
     slate.push({ label: 'Balanced Alternative', scored: balanced });
 
     // Card 3: Wildcard = alag genre wala, jiska score theek ho
     const used = new Set(slate.map((c) => c.scored.movie.id));
     const usedGenres = new Set(slate.flatMap((c) => c.scored.movie.genres));
     const remaining = rest.filter((r) => !used.has(r.movie.id));
-    const wildcard =
-      remaining.find((r) => r.movie.genres.some((g) => !usedGenres.has(g))) ?? remaining[0];
+    const wildcard = remaining.find((r) => r.movie.genres.some((g) => !usedGenres.has(g))) ?? remaining[0];
     if (wildcard) slate.push({ label: 'Wildcard Choice', scored: wildcard });
   }
   return slate;

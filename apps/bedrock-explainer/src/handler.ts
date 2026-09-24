@@ -15,12 +15,18 @@ interface ExplanationRequest {
 interface ApiEvent {
   body?: string | null;
   isBase64Encoded?: boolean;
+  httpMethod?: string;
+  requestContext?: { http?: { method?: string } };
 }
 
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION });
 const modelId = process.env.BEDROCK_MODEL_ID ?? 'deepseek.v3.2';
 
 export async function handler(event: ApiEvent) {
+  if (getHttpMethod(event) === 'OPTIONS') {
+    return jsonResponse(204, {});
+  }
+
   try {
     const request = parseRequest(event);
     const prompt = createPrompt(request);
@@ -39,6 +45,10 @@ export async function handler(event: ApiEvent) {
     console.error('Bedrock explanation failed', error);
     return jsonResponse(500, { error: 'Unable to generate explanation' });
   }
+}
+
+function getHttpMethod(event: ApiEvent): string | undefined {
+  return event.httpMethod ?? event.requestContext?.http?.method;
 }
 
 function createPrompt(request: ExplanationRequest): string {
@@ -66,8 +76,10 @@ function jsonResponse(statusCode: number, body: object) {
   return {
     statusCode,
     headers: {
-      'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'content-type',
+      'Access-Control-Allow-Methods': 'POST,OPTIONS',
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
   };

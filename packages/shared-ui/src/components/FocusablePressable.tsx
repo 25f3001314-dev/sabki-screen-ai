@@ -14,12 +14,14 @@ interface CustomPressableProps extends PressableProps {
   text: string;
   onSelect: () => void;
   style?: ViewStyle;
+  focusedStyle?: ViewStyle;
 }
 
 const FocusablePressable = React.memo(({
   text,
   onSelect,
   style,
+  focusedStyle,
   ...props
 }: CustomPressableProps) => {
   return (
@@ -29,12 +31,13 @@ const FocusablePressable = React.memo(({
           {...props}
           style={[
             styles.watchButton,
-            isFocused && styles.watchButtonFocused,
             style,
+            isFocused && (focusedStyle ?? styles.watchButtonFocused),
           ]}
           onPress={onSelect}
         >
           <Text
+            selectable={false}
             style={[
               styles.watchButtonText,
               isFocused && styles.watchButtonTextFocused,
@@ -52,16 +55,14 @@ const styles = StyleSheet.create({
   watchButton: {
     backgroundColor: colors.cardElevated,
     paddingVertical: scaledPixels(20),
-    paddingHorizontal: scaledPixels(40),
+    paddingHorizontal: scaledPixels(24),
     borderRadius: scaledPixels(8),
     borderWidth: scaledPixels(3),
     borderColor: 'transparent',
     alignItems: "center",
     justifyContent: "center",
-    alignSelf: "flex-start",
-    minWidth: scaledPixels(200),
+    alignSelf: "stretch",
     minHeight: scaledPixels(60),
-    maxWidth: '90%',
   },
   watchButtonFocused: {
     backgroundColor: colors.focusBackground,

@@ -8,6 +8,7 @@ import { Direction } from '@bam.tech/lrud';
 import { useCallback, useState } from 'react';
 import { safeZones } from '../theme';
 import { getOpenDrawerDirection } from '../utils/rtl';
+import ScreenTopControls from '../components/ScreenTopControls';
 
 export default function ExploreScreen() {
   const styles = exploreStyles;
@@ -30,6 +31,13 @@ export default function ExploreScreen() {
   return (
     <SpatialNavigationRoot isActive={isActive} onDirectionHandledWithoutMovement={onDirectionHandledWithoutMovement}>
       <View style={styles.container}>
+        <ScreenTopControls
+          onBack={() => navigation.navigate('Home')}
+          onMenu={() => {
+            navigation.dispatch(DrawerActions.openDrawer());
+            toggleMenu(true);
+          }}
+        />
         <DefaultFocus>
           <SpatialNavigationFocusableView>
             <Text style={styles.title}>Explore Screen</Text>
@@ -41,17 +49,18 @@ export default function ExploreScreen() {
 }
 
 const exploreStyles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: '#000',
-      paddingHorizontal: scaledPixels(safeZones.titleSafe.horizontal),
-      paddingVertical: scaledPixels(safeZones.titleSafe.vertical),
-    },
-    title: {
-      fontSize: scaledPixels(32),
-      fontWeight: 'bold',
-      alignSelf: 'center',
-      color: '#fff',
-      marginBottom: scaledPixels(20),
-    },
-  });
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+    paddingHorizontal: scaledPixels(safeZones.titleSafe.horizontal),
+    paddingVertical: scaledPixels(safeZones.titleSafe.vertical),
+  },
+  title: {
+    fontSize: scaledPixels(32),
+    fontWeight: 'bold',
+    alignSelf: 'center',
+    color: '#fff',
+    marginBottom: scaledPixels(20),
+    marginTop: scaledPixels(60),
+  },
+});

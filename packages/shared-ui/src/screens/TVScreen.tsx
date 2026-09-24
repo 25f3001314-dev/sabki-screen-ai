@@ -11,6 +11,7 @@ import { useCallback, useState } from 'react';
 import { Direction } from '@bam.tech/lrud';
 import { safeZones } from '../theme';
 import { getOpenDrawerDirection } from '../utils/rtl';
+import ScreenTopControls from '../components/ScreenTopControls';
 
 export default function TVScreen() {
   const styles = tvStyles;
@@ -33,6 +34,13 @@ export default function TVScreen() {
   return (
     <SpatialNavigationRoot isActive={isActive} onDirectionHandledWithoutMovement={onDirectionHandledWithoutMovement}>
       <View style={styles.container}>
+        <ScreenTopControls
+          onBack={() => navigation.navigate('Home')}
+          onMenu={() => {
+            navigation.dispatch(DrawerActions.openDrawer());
+            toggleMenu(true);
+          }}
+        />
         <DefaultFocus>
           <SpatialNavigationFocusableView>
             <Text style={styles.title}>TV Screen</Text>
@@ -44,19 +52,20 @@ export default function TVScreen() {
 }
 
 const tvStyles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: '#000',
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: scaledPixels(safeZones.titleSafe.horizontal),
-      paddingVertical: scaledPixels(safeZones.titleSafe.vertical),
-    },
-    title: {
-      fontSize: scaledPixels(32),
-      fontWeight: 'bold',
-      color: '#fff',
-      textAlign: 'center',
-      marginBottom: scaledPixels(20),
-    },
-  });
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: scaledPixels(safeZones.titleSafe.horizontal),
+    paddingVertical: scaledPixels(safeZones.titleSafe.vertical),
+  },
+  title: {
+    fontSize: scaledPixels(32),
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: scaledPixels(20),
+    marginTop: scaledPixels(60),
+  },
+});

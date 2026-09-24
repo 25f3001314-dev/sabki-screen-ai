@@ -25,8 +25,13 @@ interface ExplanationResponse {
   explanation?: string;
 }
 
-interface CancellationToken {
-  aborted: boolean;
+interface RuntimeAbortSignal {
+  readonly aborted: boolean;
+}
+
+interface RuntimeAbortController {
+  signal: RuntimeAbortSignal;
+  abort: () => void;
 }
 
 interface FetchResponse {
@@ -35,13 +40,14 @@ interface FetchResponse {
 }
 
 interface RuntimeGlobals {
+  AbortController?: new () => RuntimeAbortController;
   fetch?: (
     url: string,
     options: {
       method: string;
       headers: Record<string, string>;
       body: string;
-      signal?: CancellationToken;
+      signal?: RuntimeAbortSignal;
     },
   ) => Promise<FetchResponse>;
 }
@@ -70,9 +76,10 @@ export function buildExplanationRequest(card: SlateCard, viewers: Viewer[], rank
 
 export async function fetchMovieExplanation(
   request: ExplanationRequest,
-  signal?: CancellationToken,
+  signal?: RuntimeAbortSignal,
 ): Promise<string | null> {
   const endpoint = getExplanationApiUrl();
+  console.log('[Bedrock explanation] endpoint:', endpoint);
   if (!endpoint) return null;
 
   try {
@@ -88,7 +95,8 @@ export async function fetchMovieExplanation(
 
     const data = (await response.json()) as ExplanationResponse;
     return data.explanation?.trim() || null;
-  } catch {
+  } catch (error) {
+    console.error('[Bedrock explanation] request failed:', error);
     return null;
   }
 }

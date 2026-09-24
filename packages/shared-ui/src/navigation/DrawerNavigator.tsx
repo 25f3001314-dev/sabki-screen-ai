@@ -1,6 +1,6 @@
 
 import { useEffect, useRef } from 'react';
-import { StyleSheet, View, Platform, I18nManager } from 'react-native';
+import { StyleSheet, View, Platform, I18nManager, Pressable } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { useNavigation, DrawerActions, NavigationProp } from '@react-navigation/native';
@@ -19,7 +19,7 @@ import DecisionScreen from '../screens/DecisionScreen';
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
 function DrawerSyncWrapper({ drawerNavRef }: { drawerNavRef: React.MutableRefObject<any> }) {
-  const { isOpen: isMenuOpen } = useMenuContext();
+  const { isOpen: isMenuOpen, toggleMenu } = useMenuContext();
   const navigation = useNavigation();
 
   // Capture the drawer navigation object (useNavigation inside a Drawer.Screen gets the Drawer navigator)
@@ -39,14 +39,15 @@ function DrawerSyncWrapper({ drawerNavRef }: { drawerNavRef: React.MutableRefObj
 
 export default function DrawerNavigator() {
   const styles = drawerStyles;
-  const { isOpen: isMenuOpen } = useMenuContext();
+  const { isOpen: isMenuOpen, toggleMenu } = useMenuContext();
   const drawerNavRef = useRef<NavigationProp<DrawerParamList> | null>(null);
 
   const navigationContent = (
+    <View style={{ flex: 1 }}>
       <Drawer.Navigator
         drawerContent={CustomDrawerContent}
         initialRouteName="Home"
-        defaultStatus="open"
+        defaultStatus="closed"
         screenOptions={{
           headerShown: false,
           drawerActiveBackgroundColor: '#3498db',
@@ -98,6 +99,16 @@ export default function DrawerNavigator() {
           }}
         />
       </Drawer.Navigator>
+      {Platform.OS === 'web' && (
+        <Pressable
+          style={styles.hoverZone}
+          onHoverIn={() => {
+            drawerNavRef.current?.dispatch(DrawerActions.openDrawer());
+            toggleMenu(true);
+          }}
+        />
+      )}
+    </View>
   );
 
   // On TV platforms, don't use GestureHandlerRootView as we use remote control navigation
@@ -123,5 +134,13 @@ const drawerStyles = StyleSheet.create({
       fontSize: scaledPixels(18),
       fontWeight: 'bold',
       marginStart: scaledPixels(10),
+    },
+    hoverZone: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      bottom: 0,
+      width: scaledPixels(16),
+      zIndex: 999,
     },
   });

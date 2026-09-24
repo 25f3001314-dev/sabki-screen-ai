@@ -10,6 +10,8 @@ import VideoOverlay from '../components/player/VideoOverlay';
 import { VideoRef } from 'react-native-video';
 import VideoPlayer from '../components/player/VideoPlayer';
 import { RootStackParamList } from '../navigation/types';
+import { scaledPixels } from '../hooks/useScale';
+import ScreenTopControls from '../components/ScreenTopControls';
 
 const SHOW_NATIVE_CONTROLS = Platform.OS === 'ios';
 
@@ -41,17 +43,20 @@ export default function PlayerScreen() {
     }, 5000);
   }, []);
 
-  const seek = useCallback((time: number) => {
-    if (time < 0) {
-      time = 0;
-    } else if (time > durationRef.current) {
-      time = durationRef.current;
-    }
-    videoRef.current?.seek(time);
-    currentTimeRef.current = time;
-    setCurrentTime(time);
-    showControls();
-  }, [showControls]);
+  const seek = useCallback(
+    (time: number) => {
+      if (time < 0) {
+        time = 0;
+      } else if (time > durationRef.current) {
+        time = durationRef.current;
+      }
+      videoRef.current?.seek(time);
+      currentTimeRef.current = time;
+      setCurrentTime(time);
+      showControls();
+    },
+    [showControls],
+  );
 
   const togglePausePlay = useCallback(() => {
     setPaused((prev) => !prev);
@@ -110,8 +115,12 @@ export default function PlayerScreen() {
           onLoad={(duration) => (durationRef.current = duration)}
           onEnd={() => {
             setPaused(true);
-            navigation.goBack();
           }}
+        />
+
+        <ScreenTopControls
+          onBack={() => navigation.replace('DrawerNavigator')}
+          onMenu={() => navigation.replace('DrawerNavigator')}
         />
 
         {!SHOW_NATIVE_CONTROLS && !!durationRef.current && (
@@ -131,14 +140,14 @@ export default function PlayerScreen() {
 }
 
 const playerStyles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: '#000',
-    },
-    controlsContainer: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'space-between',
-      zIndex: 1,
-    },
-  });
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  controlsContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'space-between',
+    zIndex: 1,
+  },
+});
