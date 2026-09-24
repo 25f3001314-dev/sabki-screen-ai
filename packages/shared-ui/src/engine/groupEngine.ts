@@ -39,7 +39,7 @@ export interface GroupConfig {
 export const DEFAULT_CONFIG: GroupConfig = {
   weightAverage: 0.5,
   weightLeastMisery: 0.5,
-  unknownGenreScore: 0.5,
+  unknownGenreScore: 0.65,
   maxFairnessCredit: 0.3,
   ledgerDecay: 0.7,
   ledgerRate: 1.0,
