@@ -76,7 +76,7 @@ export function buildExplanationRequest(card: SlateCard, viewers: Viewer[], rank
 
 export async function fetchMovieExplanation(
   request: ExplanationRequest,
-  signal?: RuntimeAbortSignal,
+_signal?: RuntimeAbortSignal,
 ): Promise<string | null> {
   const endpoint = getExplanationApiUrl();
   console.log('[Bedrock explanation] endpoint:', endpoint);
@@ -89,7 +89,7 @@ export async function fetchMovieExplanation(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
-      signal,
+
     });
     if (!response.ok) return null;
 
