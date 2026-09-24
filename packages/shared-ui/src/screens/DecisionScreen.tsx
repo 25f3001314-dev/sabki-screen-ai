@@ -15,6 +15,7 @@ import { Viewer, Movie, SlateCard, rankMovies, buildSlate, updateFairnessLedger 
 import ScreenTopControls from '../components/ScreenTopControls';
 import { DrawerParamList } from '../navigation/types';
 import { RootStackParamList } from '../navigation/types';
+import demoCatalog from '../data/demoCatalog.json';
 
 // ---- MVP demo data (baad me real catalogue se replace karna) ----
 
@@ -24,44 +25,12 @@ const INITIAL_VIEWERS: Viewer[] = [
   { id: 'rahul', name: 'Rahul', prefs: { Action: 0.9, SciFi: 0.8, Horror: 0.0, Comedy: 0.5 } },
 ];
 
-const CATALOGUE: Movie[] = [
-  {
-    id: 'm1',
-    title: 'Laugh Galaxy',
-    headerImage: 'https://giolaq.github.io/scrap-tv-feed/content/aliens-from-vega/vega.jpg',
-    movie: 'https://giolaq.github.io/scrap-tv-feed/content/aliens-from-vega/vega.mp4',
-    genres: ['SciFi', 'Comedy'],
-    runtimeMin: 110,
-    ageRating: 7,
-  },
-  {
-    id: 'm2',
-    title: 'Star Heist',
-    headerImage: 'https://giolaq.github.io/scrap-tv-feed/content/behind-the-screams/poster_1920x1080.jpg',
-    movie: 'https://giolaq.github.io/scrap-tv-feed/content/behind-the-screams/movie_1080p.mp4',
-    genres: ['Action', 'SciFi'],
-    runtimeMin: 125,
-    ageRating: 13,
-  },
-  {
-    id: 'm3',
-    title: 'Family Ties',
-    headerImage: 'https://giolaq.github.io/scrap-tv-feed/content/cereal-streamz/poster_1920x1080.jpg',
-    movie: 'https://giolaq.github.io/scrap-tv-feed/content/cereal-streamz/movie_1080p.mp4',
-    genres: ['Drama', 'Comedy'],
-    runtimeMin: 100,
-    ageRating: 0,
-  },
-  {
-    id: 'm4',
-    title: 'Iron Sunset',
-    headerImage: 'https://giolaq.github.io/scrap-tv-feed/content/feline-assistant/poster_1920x1080.jpg',
-    movie: 'https://giolaq.github.io/scrap-tv-feed/content/feline-assistant/movie_1080p.mp4',
-    genres: ['Action', 'Drama'],
-    runtimeMin: 130,
-    ageRating: 13,
-  },
-];
+// Demo: jab tak baaki movies ki streams nahi hain, pehli 4 real clips reuse hoti hain
+const SAMPLE_VIDEOS = (demoCatalog as Movie[]).slice(0, 4).map((m) => m.movie ?? '');
+const CATALOGUE: Movie[] = (demoCatalog as Movie[]).map((m, i) => ({
+  ...m,
+  movie: m.movie ?? SAMPLE_VIDEOS[i % SAMPLE_VIDEOS.length],
+}));
 
 const SESSION_SECONDS = 120;
 const SELECTION_TRANSITION_MS = 2500;

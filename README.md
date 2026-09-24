@@ -10,6 +10,7 @@ A production-ready TV application template built with React Native, supporting A
 ## Table of Contents
 
 - [Features](#features)
+- [Innovation](#innovation)
 - [Architecture](#architecture)
 - [Getting Started](#getting-started)
 - [Building and Running](#building-and-running)
@@ -85,6 +86,16 @@ A production-ready TV application template built with React Native, supporting A
 - Native remote control support via TVEventHandler
 
 Both apps share components from the `@multi-tv/shared-ui` package.
+
+## Innovation
+
+This project treats the TV as a first-class platform rather than a larger mobile screen. Its innovation comes from combining a shared React Native foundation with TV-specific interaction, media, and device capabilities:
+
+- **One experience across TV ecosystems**: A shared UI layer supports Android TV, Apple TV, Fire TV with Fire OS, Fire TV with Vega OS, and Web while allowing each platform to use its native capabilities.
+- **Remote-first interaction design**: Focus management, spatial navigation, and remote control events are built into the experience, making browsing and playback natural from a distance.
+- **Adaptive playback architecture**: The player selects the right control strategy for each platform, combining native controls where available with custom overlays and W3C Media APIs on Vega OS.
+- **Live content-driven interface**: Remote catalog data flows into typed UI models, enabling dynamic hero banners, rich metadata, trending content, and graceful fallback states without changing screen code.
+- **Build once, optimize locally**: Shared screens and components reduce duplication, while platform-specific file resolution keeps device optimizations isolated and maintainable.
 
 ## Architecture
 
