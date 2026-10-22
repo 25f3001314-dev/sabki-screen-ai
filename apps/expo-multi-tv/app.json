@@ -48,7 +48,9 @@
           }
         }
       ],
-      "./plugins/withFmtXcode26Fix"
+      "./plugins/withFmtXcode26Fix",
+      "expo-font",
+      "expo-web-browser"
     ],
     "name": "MultiTVSample",
     "slug": "MultiTVSample",
