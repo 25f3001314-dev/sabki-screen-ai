@@ -22,7 +22,7 @@ The engine is fully deterministic: the same group always gets the same answer.
 - **Per-viewer satisfaction:** `0.7 x average genre score + 0.3 x worst genre score`. A genre a viewer has no preference for scores 0.65.
 - **Group score:** the mean of the weighted average and the **least-misery** score (the unhappiest viewer), so a pick one person hates cannot win.
 - **Fairness ledger:** viewers below the mean satisfaction of the chosen title earn credit (max 0.3, decays by 0.7 each round) that raises their weight in the next average.
-- **Slate:** best group score; then the highest least-misery among the rest; then the first remaining title that adds a new genre.
+- **Slate:** best group score; then the highest least-misery among titles with a different genre mix than the best pick; then the first remaining title that adds a new genre.
 
 ### The AI layer (`apps/bedrock-explainer`, `packages/shared-ui/src/services/bedrockExplanation.ts`)
 
