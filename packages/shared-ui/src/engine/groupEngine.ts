@@ -153,7 +153,11 @@ export function buildSlate(ranked: ScoredMovie[]): SlateCard[] {
 
   // Card 2: Balanced Alternative = bachi hui me sabse achha least-misery
   if (rest.length > 0) {
-    const balanced = [...rest].sort((a, b) => b.leastMisery - a.leastMisery || b.groupScore - a.groupScore)[0];
+    const sameGenres = (a: Movie, b: Movie) =>
+  a.genres.length === b.genres.length && a.genres.every((g) => b.genres.includes(g));
+const differentFromBest = rest.filter((r) => !sameGenres(r.movie, best.movie));
+const pool = differentFromBest.length > 0 ? differentFromBest : rest;
+const balanced = [...pool].sort((a, b) => b.leastMisery - a.leastMisery || b.groupScore - a.groupScore)[0];
     slate.push({ label: 'Balanced Alternative', scored: balanced });
 
     // Card 3: Wildcard = alag genre wala, jiska score theek ho
