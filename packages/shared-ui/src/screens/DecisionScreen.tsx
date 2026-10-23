@@ -16,12 +16,18 @@ import { DrawerParamList } from '../navigation/types';
 import { RootStackParamList } from '../navigation/types';
 import demoCatalog from '../data/demoCatalog.json';
 
+// Timer functions ko globalThis se lete hain (extra type packages ki zaroorat nahi)
+const timers = globalThis as unknown as {
+  setTimeout: (fn: () => void, ms: number) => unknown;
+  clearTimeout: (id: unknown) => void;
+};
+
 // ---- MVP demo data (baad me real catalogue se replace karna) ----
 
 const INITIAL_VIEWERS: Viewer[] = [
-  { id: 'amit', name: 'Amit', prefs: { SciFi: 0.9, Comedy: 0.6, Drama: 0.3, Action: 0.7 } },
-  { id: 'priya', name: 'Priya', prefs: { Comedy: 0.9, Drama: 0.75, SciFi: 0.5, Action: 0.3 } },
-  { id: 'rahul', name: 'Rahul', prefs: { Action: 0.9, SciFi: 0.8, Horror: 0.0, Comedy: 0.5 } },
+  { id: 'amit', name: 'Amit', prefs: { SciFi: 0.95, Action: 0.75, Thriller: 0.7, Mystery: 0.7, Adventure: 0.6, Comedy: 0.5, Drama: 0.25, Romance: 0.1, Animation: 0.2, Family: 0.2, Horror: 0.4 } },
+  { id: 'priya', name: 'Priya', prefs: { Comedy: 0.9, Romance: 0.85, Drama: 0.8, Family: 0.9, Mystery: 0.7, Adventure: 0.6, SciFi: 0.3, Action: 0.15, Thriller: 0.4, Animation: 0.8, Horror: 0.0 } },
+  { id: 'rahul', name: 'Rahul', prefs: { Action: 0.95, SciFi: 0.8, Thriller: 0.85, Adventure: 0.9, Comedy: 0.5, Mystery: 0.5, Drama: 0.3, Romance: 0.1, Animation: 0.3, Family: 0.4, Horror: 0.0 } },
 ];
 
 // Demo: jab tak baaki movies ki streams nahi hain, pehli 4 real clips reuse hoti hain
@@ -63,8 +69,8 @@ export default function DecisionScreen() {
   useEffect(() => {
     if (!isScreenFocused) return;
     if (secondsLeft <= 0) return;
-    const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(t);
+    const t = timers.setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
+    return () => timers.clearTimeout(t);
   }, [secondsLeft, isScreenFocused]);
 
   const slate: SlateCard[] = useMemo(() => {
