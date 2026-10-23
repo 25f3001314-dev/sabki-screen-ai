@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import { Image, StyleSheet, View, Text } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { StyleSheet, View, Text } from 'react-native';
 import { DefaultFocus, SpatialNavigationFocusableView, SpatialNavigationRoot } from 'react-tv-space-navigation';
 import { CompositeNavigationProp, DrawerActions, useIsFocused, useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
@@ -9,7 +9,6 @@ import { safeZones } from '../theme';
 import { colors } from '../theme/colors';
 import { useMenuContext } from '../components/MenuContext';
 import FocusablePressable from '../components/FocusablePressable';
-import DotThrobber from '../components/DotThrobber';
 import { buildExplanationRequest, FALLBACK_EXPLANATION, fetchMovieExplanation } from '../services/bedrockExplanation';
 import { Viewer, Movie, SlateCard, rankMovies, buildSlate, updateFairnessLedger } from '../engine/groupEngine';
 import ScreenTopControls from '../components/ScreenTopControls';
@@ -33,8 +32,6 @@ const CATALOGUE: Movie[] = (demoCatalog as Movie[]).map((m, i) => ({
 }));
 
 const SESSION_SECONDS = 120;
-const SELECTION_TRANSITION_MS = 2500;
-const DEMO_POSTER = require('../assets/images/movie.png');
 
 type DecisionNavigationProp = CompositeNavigationProp<
   DrawerNavigationProp<DrawerParamList>,
@@ -49,29 +46,26 @@ export default function DecisionScreen() {
 
   const [viewers, setViewers] = useState<Viewer[]>(INITIAL_VIEWERS);
   const [vetoedIds, setVetoedIds] = useState<string[]>([]);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(SESSION_SECONDS);
   const [explanations, setExplanations] = useState<Record<string, string>>({});
 
-  // 2-minute decision timer
+  const autoPickedRef = useRef(false);
+
+  // Screen par (wapas) aane par timer reset
   useEffect(() => {
-    if (selectedMovie) return;
+    if (isScreenFocused) {
+      autoPickedRef.current = false;
+      setSecondsLeft(SESSION_SECONDS);
+    }
+  }, [isScreenFocused]);
+
+  // 2-minute decision timer (sirf tab chalta hai jab screen active ho)
+  useEffect(() => {
+    if (!isScreenFocused) return;
     if (secondsLeft <= 0) return;
     const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [secondsLeft, selectedMovie]);
-
-  useEffect(() => {
-    if (!selectedMovie) return;
-    const timer = setTimeout(() => {
-      if (!selectedMovie.movie) return;
-      navigation.navigate('Player', {
-        movie: selectedMovie.movie,
-        headerImage: selectedMovie.headerImage ?? '',
-      });
-    }, SELECTION_TRANSITION_MS);
-    return () => clearTimeout(timer);
-  }, [navigation, selectedMovie]);
+  }, [secondsLeft, isScreenFocused]);
 
   const slate: SlateCard[] = useMemo(() => {
     const ranked = rankMovies(CATALOGUE, viewers, { vetoedMovieIds: vetoedIds });
@@ -117,10 +111,27 @@ export default function DecisionScreen() {
     setVetoedIds((prev) => [...prev, movieId]);
   }, []);
 
-  const handleSelect = useCallback((card: SlateCard) => {
-    setSelectedMovie(card.scored.movie);
-    setViewers((prev) => updateFairnessLedger(prev, card.scored));
-  }, []);
+  // Select dabate hi seedha video open hoti hai (koi delay nahi)
+  const handleSelect = useCallback(
+    (card: SlateCard) => {
+      const movie = card.scored.movie;
+      setViewers((prev) => updateFairnessLedger(prev, card.scored));
+      if (!movie.movie) return;
+      navigation.navigate('Player', {
+        movie: movie.movie,
+        headerImage: movie.headerImage ?? '',
+      });
+    },
+    [navigation],
+  );
+
+  // Timer 0:00 hone par top "Best group match" apne aap chal jata hai
+  useEffect(() => {
+    if (!isScreenFocused || secondsLeft > 0 || autoPickedRef.current) return;
+    if (slate.length === 0) return;
+    autoPickedRef.current = true;
+    handleSelect(slate[0]);
+  }, [secondsLeft, isScreenFocused, slate, handleSelect]);
 
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = String(secondsLeft % 60).padStart(2, '0');
@@ -141,43 +152,29 @@ export default function DecisionScreen() {
             <Text selectable={false} style={styles.heading}>What should we watch?</Text>
             <Text selectable={false} style={styles.subheading}>A pick everyone can get behind.</Text>
           </View>
-          {!selectedMovie && (
-            <View style={styles.timerPill}>
-              <Text style={styles.timerLabel}>DECISION TIME</Text>
-              <Text style={styles.timer}>
-                ⏱ {minutes}:{seconds}
-              </Text>
-            </View>
-          )}
+          <View style={styles.timerPill}>
+            <Text selectable={false} style={styles.timerLabel}>DECISION TIME</Text>
+            <Text selectable={false} style={styles.timer}>
+              ⏱ {minutes}:{seconds}
+            </Text>
+          </View>
         </View>
 
-        {selectedMovie ? (
-          <View style={styles.resultBox}>
-            <Image source={getPosterSource(selectedMovie)} style={styles.selectionPoster} />
-            <Text style={styles.resultText}>Chuna gaya: {selectedMovie.title}</Text>
-            <DotThrobber />
-          </View>
-        ) : (
-          <View style={styles.row}>
-            {slate.map((card, index) => (
-              <DecisionCard
-                key={card.scored.movie.id}
-                card={card}
-                autoFocus={index === 0}
-                explanation={explanations[card.scored.movie.id] ?? FALLBACK_EXPLANATION}
-                onVeto={() => handleVeto(card.scored.movie.id)}
-                onSelect={() => handleSelect(card)}
-              />
-            ))}
-          </View>
-        )}
+        <View style={styles.row}>
+          {slate.map((card, index) => (
+            <DecisionCard
+              key={card.scored.movie.id}
+              card={card}
+              autoFocus={index === 0}
+              explanation={explanations[card.scored.movie.id] ?? FALLBACK_EXPLANATION}
+              onVeto={() => handleVeto(card.scored.movie.id)}
+              onSelect={() => handleSelect(card)}
+            />
+          ))}
+        </View>
       </View>
     </SpatialNavigationRoot>
   );
-}
-
-function getPosterSource(movie: Movie) {
-  return movie.headerImage ? { uri: movie.headerImage } : DEMO_POSTER;
 }
 
 function DecisionCard({
@@ -195,39 +192,50 @@ function DecisionCard({
 }) {
   const { scored, label } = card;
 
-  const selectButton = <FocusablePressable text="Select" onSelect={onSelect} style={styles.selectBtn} focusedStyle={styles.selectBtnFocused} />;
-
-  return (
-    <View style={styles.card}>
+  const renderCard = (isFocused: boolean) => (
+    <View style={[styles.card, isFocused && styles.cardFocused]}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardLabel}>{label}</Text>
+        <Text selectable={false} style={styles.cardLabel}>{label}</Text>
         <View style={styles.matchPill}>
-          <Text style={styles.cardScore}>{scored.matchPercent}%</Text>
-          <Text style={styles.matchLabel}>MATCH</Text>
+          <Text selectable={false} style={styles.cardScore}>{scored.matchPercent}%</Text>
+          <Text selectable={false} style={styles.matchLabel}>MATCH</Text>
         </View>
       </View>
-      <Text style={styles.cardTitle}>{scored.movie.title}</Text>
-      <Text style={styles.cardGenres}>{scored.movie.genres.join('  •  ')}</Text>
+      <Text selectable={false} style={styles.cardTitle}>{scored.movie.title}</Text>
+      <Text selectable={false} style={styles.cardGenres}>{scored.movie.genres.join('  •  ')}</Text>
 
       <View style={styles.viewerBreakdown}>
-        <Text style={styles.breakdownTitle}>GROUP MATCH</Text>
+        <Text selectable={false} style={styles.breakdownTitle}>GROUP MATCH</Text>
         {Object.entries(scored.perViewer).map(([id, val]) => (
           <View key={id} style={styles.viewerLine}>
-            <Text style={styles.viewerName}>{id}</Text>
-            <Text style={styles.viewerScore}>{Math.round(val * 100)}%</Text>
+            <Text selectable={false} style={styles.viewerName}>{id}</Text>
+            <Text selectable={false} style={styles.viewerScore}>{Math.round(val * 100)}%</Text>
           </View>
         ))}
       </View>
 
       <View style={styles.whyPanel}>
-        <Text style={styles.whyLabel}>WHY THIS PICK</Text>
-        <Text style={styles.why}>{explanation}</Text>
+        <Text selectable={false} style={styles.whyLabel}>WHY THIS PICK</Text>
+        <Text selectable={false} style={styles.why}>{explanation}</Text>
       </View>
 
-      <View style={styles.buttonRow}>
-        {autoFocus ? <DefaultFocus>{selectButton}</DefaultFocus> : selectButton}
-        <FocusablePressable text="Veto" onSelect={onVeto} style={styles.vetoBtn} focusedStyle={styles.vetoBtnFocused} />
+      <View style={styles.selectPill}>
+        <Text selectable={false} style={styles.selectPillText}>Select</Text>
       </View>
+    </View>
+  );
+
+  // Poora card focusable hai: OK/Select dabane par video khulti hai
+  const focusableCard = (
+    <SpatialNavigationFocusableView onSelect={onSelect}>
+      {({ isFocused }: { isFocused: boolean }) => renderCard(isFocused)}
+    </SpatialNavigationFocusableView>
+  );
+
+  return (
+    <View style={styles.column}>
+      {autoFocus ? <DefaultFocus>{focusableCard}</DefaultFocus> : focusableCard}
+      <FocusablePressable text="Veto" onSelect={onVeto} style={styles.vetoBtn} focusedStyle={styles.vetoBtnFocused} />
     </View>
   );
 }
@@ -289,20 +297,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
   },
-  card: {
+  column: {
     flex: 1,
     minWidth: 0,
+  },
+  card: {
     backgroundColor: '#141C2E',
     borderColor: '#2A3140',
     borderRadius: scaledPixels(16),
-    borderWidth: scaledPixels(1),
+    borderWidth: scaledPixels(2),
     padding: scaledPixels(22),
-    marginRight: 0,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: scaledPixels(8) },
     shadowOpacity: 0.3,
     shadowRadius: scaledPixels(16),
     elevation: 5,
+  },
+  // Focus par poora card halka highlight hota hai (outer border + halki glow)
+  cardFocused: {
+    backgroundColor: '#1A2540',
+    borderColor: '#7DE2D1',
+    shadowColor: '#7DE2D1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: scaledPixels(20),
+    elevation: 12,
+  },
+  selectPill: {
+    alignItems: 'center',
+    backgroundColor: '#2A3140',
+    borderRadius: scaledPixels(10),
+    paddingVertical: scaledPixels(14),
+  },
+  selectPillText: {
+    color: '#FFFFFF',
+    fontSize: scaledPixels(18),
+    fontWeight: '800',
   },
   cardHeader: {
     alignItems: 'flex-start',
@@ -395,20 +425,9 @@ const styles = StyleSheet.create({
     fontSize: scaledPixels(14),
     lineHeight: scaledPixels(19),
   },
-  buttonRow: {
-    alignItems: 'stretch',
-    flexDirection: 'row',
-    gap: scaledPixels(20),
-    justifyContent: 'space-between',
-  },
-  selectBtn: {
-    flex: 1,
-    minWidth: 0,
-    paddingHorizontal: scaledPixels(16),
-  },
   vetoBtn: {
-    flex: 1,
-    minWidth: 0,
+    alignSelf: 'stretch',
+    marginTop: scaledPixels(14),
     backgroundColor: '#B3273B',
     borderColor: '#B3273B',
     paddingHorizontal: scaledPixels(16),
@@ -422,34 +441,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.9,
     shadowRadius: scaledPixels(24),
     elevation: 16,
-  },
-  selectBtnFocused: {
-    transform: [{ scale: 1.12 }],
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: scaledPixels(24),
-    elevation: 16,
-  },
-  resultBox: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    paddingBottom: scaledPixels(40),
-  },
-  selectionPoster: {
-    borderColor: '#2A3140',
-    borderRadius: scaledPixels(14),
-    borderWidth: scaledPixels(1),
-    height: scaledPixels(210),
-    marginBottom: scaledPixels(22),
-    resizeMode: 'cover',
-    width: scaledPixels(350),
-  },
-  resultText: {
-    fontSize: scaledPixels(34),
-    color: colors.text,
-    fontWeight: '800',
-    textAlign: 'center',
   },
 });
