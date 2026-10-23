@@ -74,34 +74,49 @@ export function buildExplanationRequest(card: SlateCard, viewers: Viewer[], rank
   };
 }
 
+const REQUEST_TIMEOUT_MS = 8000;
+
 export async function fetchMovieExplanation(
   request: ExplanationRequest,
-_signal?: RuntimeAbortSignal,
+  signal?: RuntimeAbortSignal,
 ): Promise<string | null> {
   const endpoint = getExplanationApiUrl();
-  console.log('[Bedrock explanation] endpoint:', endpoint);
   if (!endpoint) return null;
 
+  const runtime = globalThis as unknown as RuntimeGlobals & {
+    setTimeout?: (fn: () => void, ms: number) => unknown;
+    clearTimeout?: (id: unknown) => void;
+  };
+  if (!runtime.fetch) return null;
+
+  const controller = runtime.AbortController ? new runtime.AbortController() : undefined;
+  const timer = controller && runtime.setTimeout
+    ? runtime.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+    : undefined;
+  const onOuterAbort = () => controller?.abort();
+  (signal as { addEventListener?: (t: string, f: () => void) => void } | undefined)
+    ?.addEventListener?.('abort', onOuterAbort);
+
   try {
-    const runtime = globalThis as unknown as RuntimeGlobals;
-    if (!runtime.fetch) return null;
     const response = await runtime.fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
-
+      
+      signal: controller?.signal ?? signal,
     });
     if (!response.ok) return null;
 
     const data = (await response.json()) as ExplanationResponse;
     return data.explanation?.trim() || null;
-  } catch (error) {
-    console.error('[Bedrock explanation] request failed:', error);
+  } catch {
     return null;
+  } finally {
+    if (timer !== undefined) runtime.clearTimeout?.(timer);
+    (signal as { removeEventListener?: (t: string, f: () => void) => void } | undefined)
+      ?.removeEventListener?.('abort', onOuterAbort);
   }
 }
-
-export { FALLBACK_EXPLANATION };
 
 function toMoviePayload(movie: Movie): ExplanationRequest['movie'] {
   return {
