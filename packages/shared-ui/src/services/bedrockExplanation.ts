@@ -126,3 +126,4 @@ function toMoviePayload(movie: Movie): ExplanationRequest['movie'] {
     ageRating: movie.ageRating,
   };
 }
+export { FALLBACK_EXPLANATION };
